@@ -151,10 +151,29 @@ export interface MapData {
   edges: { from: string; to: string; type: 'req' | 'part' }[];
 }
 
+/** Изображение, прикреплённое к тексту: в Markdown на него ссылается ![подпись](attachment:id). */
+export interface Attachment {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  createdAt: number;
+  /** Содержимое файла в base64 — в таком виде оно попадает в резервную копию и шифрованное хранилище. */
+  data: string;
+}
+
+export interface AttachmentFile {
+  id: string;
+  name: string;
+  mime: string;
+  data: Uint8Array;
+}
+
 export interface DataSet {
   concepts: Concept[];
   notes: Note[];
   relations: Relation[];
+  attachments: Attachment[];
 }
 
 export interface BackupFile extends DataSet {

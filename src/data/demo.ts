@@ -57,5 +57,5 @@ export function demoData(now: number, uuid: () => string): DataSet {
     N('Видео: GraphQL за 20 минут',
       'Ссылка от одногруппника. Сравнение с REST API: клиент сам выбирает поля. Посмотреть перед выбором API для курсовой.', []),
   ];
-  return { concepts: Object.values(C), notes, relations };
+  return { concepts: Object.values(C), notes, relations, attachments: [] };
 }

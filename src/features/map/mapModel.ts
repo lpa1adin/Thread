@@ -20,11 +20,17 @@ export interface MapCard {
 export interface MapModel {
   cards: MapCard[];
   layout: LayoutResult;
-  /** Страницы без связей «требует знания» и «является частью» — перечисляются отдельно. */
-  unplaced: MapNode[];
-  /** Страницы, которые есть на карте (для списка фильтра). */
-  onMap: MapNode[];
+  width: number;
+  height: number;
+  /** Подпись над карточками страниц, у которых пока нет связей «требует знания» и «является частью». */
+  looseLabel: { x: number; y: number; text: string } | null;
+  /** Все страницы — для списка фильтра «ветка страницы». */
+  pages: MapNode[];
 }
+
+const GAP_X = 34;
+const GAP_Y = 22;
+const PAD = 40;
 
 const cardHeight = (n: MapNode, open: boolean) => (open ? CARD.h + (1 + Math.max(1, n.materialTitles.length)) * CARD.line + CARD.pad : CARD.h);
 
@@ -49,7 +55,7 @@ export function buildMapModel(data: MapData, filter: string, open: Set<string>):
       }
     }
     ids = keep;
-  } else if (filter && all.has(filter)) {
+  } else if (filter && byId.has(filter)) {
     // Ветка страницы: всё, что выше и ниже неё по дереву.
     const keep = new Set([filter]);
     for (const down of [true, false]) {
@@ -73,16 +79,35 @@ export function buildMapModel(data: MapData, filter: string, open: Set<string>):
     nodes.map((n) => ({ id: n.id, w: CARD.w, h: cardHeight(n, open.has(n.id)), sortKey: n.title })),
     edges.filter((e) => ids.has(e.from) && ids.has(e.to)),
   );
+  const info = (n: MapNode) => `${CONCEPT_TYPES[n.type].name} · ${STATUSES[n.status]}${n.tasksAll ? ` · пунктов ${n.tasksDone}/${n.tasksAll}` : ''}`;
   const cards: MapCard[] = nodes.map((n) => {
     const p = layout.nodes.get(n.id)!;
-    const tasks = n.tasksAll ? ` · пунктов ${n.tasksDone}/${n.tasksAll}` : '';
-    return { node: n, x: Math.round(p.x), y: p.y, h: p.h, open: open.has(n.id), info: `${CONCEPT_TYPES[n.type].name} · ${STATUSES[n.status]}${tasks}` };
+    return { node: n, x: Math.round(p.x), y: p.y, h: p.h, open: open.has(n.id), info: info(n) };
   });
   const byTitle = (a: MapNode, b: MapNode) => a.title.localeCompare(b.title, 'ru');
-  return {
-    cards,
-    layout,
-    unplaced: filter ? [] : data.nodes.filter((n) => !all.has(n.id)).sort(byTitle),
-    onMap: data.nodes.filter((n) => all.has(n.id)).sort(byTitle),
-  };
+
+  // Страницы без связей тоже есть на карте: они стоят сеткой под деревом и ждут, пока их свяжут.
+  const loose = filter ? [] : data.nodes.filter((n) => !all.has(n.id)).sort(byTitle);
+  const hasTree = nodes.length > 0;
+  let width = hasTree ? layout.width : 0;
+  let height = hasTree ? layout.height : PAD;
+  let looseLabel: MapModel['looseLabel'] = null;
+  if (loose.length) {
+    const cols = Math.max(1, Math.min(loose.length, Math.max(4, Math.floor((width - PAD * 2 + GAP_X) / (CARD.w + GAP_X)))));
+    const gridWidth = cols * (CARD.w + GAP_X) - GAP_X + PAD * 2;
+    width = Math.max(width, gridWidth);
+    let y = height;
+    if (hasTree) {
+      looseLabel = { x: PAD, y: y + 18, text: 'Пока без связей «требует знания» и «является частью»' };
+      y += 34;
+    }
+    for (let i = 0; i < loose.length; i += cols) {
+      const row = loose.slice(i, i + cols);
+      const rowH = Math.max(...row.map((n) => cardHeight(n, open.has(n.id))));
+      row.forEach((n, j) => cards.push({ node: n, x: PAD + j * (CARD.w + GAP_X), y, h: cardHeight(n, open.has(n.id)), open: open.has(n.id), info: info(n) }));
+      y += rowH + GAP_Y;
+    }
+    height = y - GAP_Y + PAD;
+  }
+  return { cards, layout, width, height, looseLabel, pages: [...data.nodes].sort(byTitle) };
 }

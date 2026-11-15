@@ -3,6 +3,7 @@
  * сюда же в ВКР встраивается очередь синхронизации.
  */
 import type { Ctx } from './context';
+import { attachmentsService } from './services/attachments';
 import { backupService } from './services/backup';
 import { conceptsService } from './services/concepts';
 import { graphService } from './services/graph';
@@ -25,6 +26,7 @@ export const handlers = {
   graph: bind(graphService),
   search: bind(searchService),
   suggestions: bind(suggestionsService),
+  attachments: bind(attachmentsService),
   backup: bind({
     exportMarkdown: (ctx: Ctx) => backupService.exportMarkdown(ctx),
   }),

@@ -21,6 +21,8 @@ export type Theme = 'auto' | 'light' | 'dark';
 interface UiState {
   toasts: Toast[];
   confirm: ConfirmRequest | null;
+  /** Изображение, открытое для просмотра в полный размер. */
+  image: { url: string; alt: string } | null;
   theme: Theme;
 }
 
@@ -30,7 +32,7 @@ const readTheme = (): Theme => {
   return v === 'light' || v === 'dark' ? v : 'auto';
 };
 
-let state: UiState = { toasts: [], confirm: null, theme: readTheme() };
+let state: UiState = { toasts: [], confirm: null, image: null, theme: readTheme() };
 const listeners = new Set<() => void>();
 const set = (patch: Partial<UiState>) => {
   state = { ...state, ...patch };
@@ -75,6 +77,9 @@ export function confirmAction(req: Omit<ConfirmRequest, 'resolve'>): Promise<boo
     });
   });
 }
+
+export const showImage = (url: string, alt: string) => set({ image: { url, alt } });
+export const hideImage = () => set({ image: null });
 
 export function applyTheme(theme: Theme = state.theme): void {
   if (theme === 'auto') delete document.documentElement.dataset.theme;

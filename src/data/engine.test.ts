@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { fromBase64 } from '../core/crypto';
 import type { Api } from './engine';
 import { neighborIds } from './services/graph';
 import { toMatchExpression } from './services/search';
@@ -357,5 +358,80 @@ describe('надёжность', () => {
     const { engine } = await createTestEngine();
     await expect(engine.call('concepts', 'constructor', [])).rejects.toMatchObject({ code: 'bad-call' });
     await expect(engine.call('__proto__', 'x', [])).rejects.toMatchObject({ code: 'bad-call' });
+  });
+});
+
+describe('изображения', () => {
+  const PNG = fromBase64('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+  const count = () => pdb.get<{ n: number }>('SELECT count(*) n FROM attachments')!.n;
+
+  it('сохраняет изображение и определяет тип по содержимому', async () => {
+    const { id } = await api.attachments.add({ name: 'снимок.jpg', data: PNG });
+    const file = await api.attachments.get(id);
+    expect(file.mime).toBe('image/png');
+    expect([...file.data]).toEqual([...PNG]);
+    await expect(api.attachments.get('нет')).rejects.toMatchObject({ code: 'not-found' });
+  });
+
+  it('отклоняет не изображения, пустые и слишком большие файлы', async () => {
+    const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+    await expect(api.attachments.add({ name: 'x.png', data: svg })).rejects.toMatchObject({ code: 'image-type' });
+    await expect(api.attachments.add({ name: 'x.png', data: new Uint8Array(0) })).rejects.toMatchObject({ code: 'image-empty' });
+    const big = new Uint8Array(10 * 1024 * 1024 + 1);
+    big.set(PNG);
+    await expect(api.attachments.add({ name: 'x.png', data: big })).rejects.toMatchObject({ code: 'image-size' });
+    expect(count()).toBe(0);
+  });
+
+  it('убирает изображения без ссылок, но не трогает используемые и свежие', async () => {
+    const used = await api.attachments.add({ name: 'a.png', data: PNG });
+    const inNote = await api.attachments.add({ name: 'b.png', data: PNG });
+    await api.attachments.add({ name: 'c.png', data: PNG });
+    const page = await api.concepts.create({ title: 'A', body: `![схема](attachment:${used.id})` });
+    await api.notes.save({ title: 'М', content: `![x](attachment:${inNote.id})`, conceptIds: [page.id] });
+    expect(await api.attachments.sweep()).toBe(0);
+    expect(await api.attachments.sweep(0)).toBe(1);
+    expect(count()).toBe(2);
+    await api.concepts.remove(page.id);
+    expect(await api.attachments.sweep(0)).toBe(1);
+  });
+
+  it('попадает в резервную копию и восстанавливается из неё', async () => {
+    const { id } = await api.attachments.add({ name: 'a.png', data: PNG });
+    await api.concepts.create({ title: 'A', body: `![схема](attachment:${id})` });
+    const json = await api.system.exportBackup();
+    await api.system.clear();
+    expect(count()).toBe(0);
+    await api.system.restoreBackup(json);
+    expect([...(await api.attachments.get(id)).data]).toEqual([...PNG]);
+    const fake = JSON.parse(json);
+    fake.attachments[0].data = btoa('<script>alert(1)</script>');
+    await expect(api.system.restoreBackup(JSON.stringify(fake))).rejects.toMatchObject({ code: 'bad-backup' });
+    expect(count()).toBe(1);
+  });
+
+  it('шифруется вместе с остальными данными', async () => {
+    const { id } = await api.attachments.add({ name: 'a.png', data: PNG });
+    await api.security.enable('верный пароль');
+    expect(count()).toBe(0);
+    const added = await api.attachments.add({ name: 'b.png', data: PNG });
+    expect(pdb.get<{ n: number }>(`SELECT count(*) n FROM vault WHERE kind = 'attachment'`)!.n).toBe(2);
+    await api.security.lock();
+    await expect(api.attachments.get(id)).rejects.toMatchObject({ code: 'locked' });
+    await api.security.unlock('верный пароль');
+    expect([...(await api.attachments.get(id)).data]).toEqual([...PNG]);
+    expect((await api.attachments.get(added.id)).name).toBe('b.png');
+    await api.security.disable('верный пароль');
+    expect(count()).toBe(2);
+  });
+
+  it('старая база получает новую схему без потери данных', async () => {
+    pdb.run(`DROP TABLE vault`);
+    pdb.run(`CREATE TABLE vault (kind TEXT NOT NULL CHECK (kind IN ('concept','note','relation')), id TEXT NOT NULL, data BLOB NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (kind, id)) WITHOUT ROWID`);
+    pdb.run(`INSERT INTO vault VALUES ('concept', 'x', x'00', 1)`);
+    const { applySchema } = await import('./storage/schema');
+    applySchema(pdb);
+    expect(pdb.all('SELECT kind, id FROM vault')).toEqual([{ kind: 'concept', id: 'x' }]);
+    pdb.run(`INSERT INTO vault VALUES ('attachment', 'y', x'00', 1)`);
   });
 });

@@ -7,7 +7,9 @@ import { AppError, type BackupInfo, type DataSet, type SecurityStatus } from '..
 import type { Ctx, VaultKind } from './context';
 import { demoData } from './demo';
 import { handlers } from './handlers';
+import { attachmentsRepo } from './repositories/attachments';
 import { conceptsRepo, notesRepo } from './repositories/content';
+import { attachmentsService } from './services/attachments';
 import { relationsRepo } from './repositories/graph';
 import { metaRepo, vaultRepo, type VaultRow } from './repositories/meta';
 import { backupService } from './services/backup';
@@ -108,6 +110,7 @@ export class Engine {
   private aggregate(ctx: Ctx, kind: VaultKind, id: string): unknown {
     if (kind === 'concept') return conceptsRepo.get(ctx, id, true);
     if (kind === 'note') return notesRepo.get(ctx, id, true);
+    if (kind === 'attachment') return attachmentsRepo.encoded(ctx, id);
     return relationsRepo.get(ctx, id, true);
   }
 
@@ -138,6 +141,7 @@ export class Engine {
     await add('concept', data.concepts);
     await add('note', data.notes);
     await add('relation', data.relations);
+    await add('attachment', data.attachments);
     return rows;
   }
 
@@ -199,11 +203,12 @@ export class Engine {
     unlock: async (password: string): Promise<void> => {
       if (this.db) return;
       const { key } = await this.verify(password);
-      const data: DataSet = { concepts: [], notes: [], relations: [] };
+      const data: DataSet = { concepts: [], notes: [], relations: [], attachments: [] };
       for (const row of vaultRepo.all(this.pdb)) {
         const obj = JSON.parse(await decryptText(key, row.data, `${row.kind}:${row.id}`));
         if (row.kind === 'concept') data.concepts.push(obj);
         else if (row.kind === 'note') data.notes.push(obj);
+        else if (row.kind === 'attachment') data.attachments.push(obj);
         else data.relations.push(obj);
       }
       this.db = this.memoryDbWith(data);
@@ -282,6 +287,9 @@ export class Engine {
     loadDemo: () => this.write((ctx) => backupService.replaceWith(ctx, demoData(ctx.now(), ctx.uuid))),
 
     clear: () => this.write((ctx) => backupService.wipe(ctx)),
+
+    /** Уборка при запуске: изображения, на которые давно нет ссылок, удаляются. Пока база заблокирована — ничего не делает. */
+    sweep: async (): Promise<number> => (this.db ? this.write((ctx) => attachmentsService.sweep(ctx)) : 0),
   };
 }
 

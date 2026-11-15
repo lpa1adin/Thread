@@ -14,7 +14,7 @@ const DDL = `
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL) WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS vault (
-  kind TEXT NOT NULL CHECK (kind IN ('concept','note','relation')),
+  kind TEXT NOT NULL CHECK (kind IN ('concept','note','relation','attachment')),
   id TEXT NOT NULL,
   data BLOB NOT NULL,
   updated_at INTEGER NOT NULL,
@@ -95,6 +95,16 @@ CREATE TABLE IF NOT EXISTS concept_tags (
   PRIMARY KEY (concept_id, tag_id)
 ) WITHOUT ROWID;
 
+-- Изображения, прикреплённые к текстам страниц и материалов.
+CREATE TABLE IF NOT EXISTS attachments (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  mime TEXT NOT NULL CHECK (mime IN ('image/png','image/jpeg','image/gif','image/webp')),
+  size INTEGER NOT NULL CHECK (size > 0),
+  data BLOB NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
 -- Граф для рекурсивных запросов: связи вручную и ссылки из текста, без точных повторов.
 CREATE VIEW IF NOT EXISTS graph_edges AS
   SELECT source_id, target_id, type_id FROM relations WHERE deleted = 0
@@ -107,7 +117,21 @@ CREATE VIRTUAL TABLE IF NOT EXISTS search USING fts5 (
 );
 `;
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
+
+/** Версия 2: в шифрованном хранилище появился вид объекта «attachment» — таблица пересоздаётся с новым ограничением. */
+function migrate(db: Sql): void {
+  const vault = db.get<{ sql: string }>(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'vault'`);
+  if (vault && !vault.sql.includes('attachment')) {
+    db.run(`ALTER TABLE vault RENAME TO vault_v1`);
+    db.run(`CREATE TABLE vault (
+      kind TEXT NOT NULL CHECK (kind IN ('concept','note','relation','attachment')),
+      id TEXT NOT NULL, data BLOB NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (kind, id)) WITHOUT ROWID`);
+    db.run(`INSERT INTO vault SELECT kind, id, data, updated_at FROM vault_v1`);
+    db.run(`DROP TABLE vault_v1`);
+  }
+  db.run(`INSERT INTO meta (key, value) VALUES ('schema_version', ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value`, [String(SCHEMA_VERSION)]);
+}
 
 export function applySchema(db: Sql): void {
   // Вне транзакции: внутри неё SQLite эту настройку игнорирует.
@@ -122,9 +146,9 @@ export function applySchema(db: Sql): void {
         [t.id, t.name, t.question, t.directed ? 1 : 0, t.color, t.dash, i],
       ),
     );
-    db.run(`INSERT INTO meta (key, value) VALUES ('schema_version', ?) ON CONFLICT (key) DO NOTHING`, [String(SCHEMA_VERSION)]);
+    migrate(db);
   });
 }
 
 /** Таблицы с данными пользователя — в порядке, безопасном для удаления с учётом внешних ключей. */
-export const DATA_TABLES = ['links', 'concept_notes', 'concept_tags', 'relations', 'tags', 'notes', 'concepts', 'search'];
+export const DATA_TABLES = ['attachments', 'links', 'concept_notes', 'concept_tags', 'relations', 'tags', 'notes', 'concepts', 'search'];

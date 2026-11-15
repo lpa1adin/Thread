@@ -33,7 +33,9 @@ export const LIMITS = {
   textLength: 2_000_000,
   tagLength: 40,
   tagsPerPage: 30,
-  backupBytes: 50 * 1024 * 1024,
+  backupBytes: 400 * 1024 * 1024,
+  /** Одно изображение — не больше 10 МБ. */
+  imageBytes: 10 * 1024 * 1024,
   importFileBytes: 1024 * 1024,
   importFiles: 200,
   /** Сколько узлов показывает маленький граф: большие графы показываются по глубине (раздел 5 ТЗ). */

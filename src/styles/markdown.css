@@ -62,13 +62,49 @@
   font-size: 0.86em;
 }
 .md pre {
-  margin: 0.9em 0;
+  margin: 0;
   padding: 12px 14px;
   overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  tab-size: 4;
+}
+/* В коде лигатуры мешают: «>=» должно читаться как два символа, а не как «≥». */
+.md code,
+.md pre {
+  font-variant-ligatures: none;
+}
+.md .code {
+  margin: 0.9em 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--code-bg);
-  font-size: 13.5px;
-  line-height: 1.55;
+}
+.md .code__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+  padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--muted);
+}
+.md .code__copy {
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.md .code__copy:hover {
+  background: var(--sunken);
+  color: var(--text);
 }
 .md pre code {
   padding: 0;
@@ -167,4 +203,91 @@ mark {
 }
 .md--static .check {
   pointer-events: none;
+}
+
+/* прикреплённые изображения */
+.md .md__image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.9em 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  cursor: zoom-in;
+}
+.md .md__image:not([src]) {
+  min-height: 80px;
+  background: var(--sunken);
+}
+.md .md__noimage {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+
+/* подсветка синтаксиса (классы highlight.js) */
+.md .hljs-comment,
+.md .hljs-quote {
+  color: var(--hl-comment);
+  font-style: italic;
+}
+.md .hljs-keyword,
+.md .hljs-selector-tag,
+.md .hljs-literal,
+.md .hljs-doctag {
+  color: var(--hl-keyword);
+}
+.md .hljs-string,
+.md .hljs-regexp,
+.md .hljs-addition,
+.md .hljs-selector-attr,
+.md .hljs-selector-pseudo {
+  color: var(--hl-string);
+}
+.md .hljs-number,
+.md .hljs-symbol,
+.md .hljs-bullet {
+  color: var(--hl-number);
+}
+.md .hljs-title,
+.md .hljs-title.function_,
+.md .hljs-section,
+.md .hljs-selector-id {
+  color: var(--hl-function);
+}
+.md .hljs-type,
+.md .hljs-title.class_,
+.md .hljs-selector-class {
+  color: var(--hl-type);
+}
+.md .hljs-built_in,
+.md .hljs-name,
+.md .hljs-tag {
+  color: var(--hl-builtin);
+}
+.md .hljs-meta,
+.md .hljs-meta .hljs-keyword {
+  color: var(--hl-meta);
+}
+.md .hljs-meta .hljs-string {
+  color: var(--hl-string);
+}
+.md .hljs-attr,
+.md .hljs-attribute,
+.md .hljs-variable,
+.md .hljs-template-variable,
+.md .hljs-property,
+.md .hljs-deletion {
+  color: var(--hl-attr);
+}
+.md .hljs-emphasis {
+  font-style: italic;
+}
+.md .hljs-strong {
+  font-weight: 700;
 }

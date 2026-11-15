@@ -62,8 +62,11 @@ test('карта: уровни, раскрытие карточки, фильт�
   await openDemo(page);
   await page.getByRole('button', { name: 'Карта', exact: true }).click();
   const map = page.getByRole('img', { name: 'Карта изучения' });
-  await expect(map.getByRole('link', { name: /Открыть страницу/ })).toHaveCount(13);
-  await expect(page.getByText('Не на карте')).toContainText('MDN Web Docs');
+  // На карте все 15 страниц: и связанные в дерево, и пока без связей (они стоят ниже дерева).
+  await expect(map.getByRole('link', { name: /Открыть страницу/ })).toHaveCount(15);
+  await expect(map.getByText('Пока без связей')).toBeVisible();
+  const bottom = async (title: string) => (await map.getByRole('link', { name: `Открыть страницу «${title}»` }).boundingBox())!.y;
+  expect(await bottom('MDN Web Docs')).toBeGreaterThan(await bottom('Курсовая: база знаний'));
 
   // HTTP выше CORS: сначала учим то, что требуется.
   const y = async (title: string) => (await map.getByRole('link', { name: `Открыть страницу «${title}»` }).boundingBox())!.y;
@@ -121,4 +124,78 @@ test('резервная копия, восстановление, экспор�
   await page.getByRole('dialog').getByRole('button', { name: 'Заменить данные' }).click();
   await expect(page.getByText(/не похож на резервную копию/)).toBeVisible();
   await expect(nav(page).getByRole('link', { name: 'CORS' }).first()).toBeVisible();
+});
+
+test('изображения: кнопка, вставка из буфера, показ, просмотр, перезагрузка', async ({ page }) => {
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  await openDemo(page);
+  await openPage(page, 'WebSocket');
+  await page.getByRole('link', { name: 'Написать текст' }).click();
+  await typeInEditor(page, 'Текст страницы', 'Схема соединения:');
+
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Добавить изображение' }).click()]);
+  await chooser.setFiles({ name: 'схема.png', mimeType: 'image/png', buffer: png });
+  const preview = page.getByLabel('Предпросмотр');
+  await expect(preview.getByRole('img', { name: 'схема' })).toHaveJSProperty('naturalWidth', 1);
+
+  // Скриншот из буфера обмена.
+  await page.getByRole('textbox', { name: 'Текст страницы' }).click();
+  await page.evaluate((b64) => {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const data = new DataTransfer();
+    data.items.add(new File([bytes], 'image.png', { type: 'image/png' }));
+    document.querySelector('.cm-content')!.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  }, png.toString('base64'));
+  await expect(preview.getByRole('img', { name: 'Скриншот' })).toHaveJSProperty('naturalWidth', 1);
+
+  // Не изображение отклоняется с понятным сообщением.
+  const [bad] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Добавить изображение' }).click()]);
+  await bad.setFiles({ name: 'текст.png', mimeType: 'image/png', buffer: Buffer.from('это не картинка') });
+  await expect(page.getByText('Это не изображение. Подходят PNG, JPEG, GIF и WebP')).toBeVisible();
+
+  await expect(page.getByRole('status').filter({ hasText: 'Сохранено' })).toBeVisible();
+  await page.getByRole('button', { name: 'Готово' }).click();
+  const article = page.locator('.md--article');
+  await expect(article.getByRole('img')).toHaveCount(2);
+
+  await page.reload();
+  await expect(article.getByRole('img', { name: 'схема' })).toHaveJSProperty('naturalWidth', 1);
+  await article.getByRole('img', { name: 'схема' }).click();
+  const viewer = page.getByRole('dialog', { name: 'схема' });
+  await expect(viewer.getByRole('img')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(viewer).toBeHidden();
+});
+
+test('карта показывает новые страницы сразу, даже без связей', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Создать первую страницу' }).click();
+  await page.getByLabel('Название').fill('Язык C');
+  await page.getByRole('button', { name: 'Создать страницу' }).click();
+  await page.getByRole('button', { name: 'Карта', exact: true }).click();
+  const map = page.getByRole('img', { name: 'Карта изучения' });
+  await expect(map.getByRole('link', { name: 'Открыть страницу «Язык C»' })).toBeVisible();
+  await map.getByRole('button', { name: 'Развернуть «Язык C»' }).click();
+  await expect(map.getByText('понятие · отложено')).toBeVisible();
+});
+
+test('код: подсветка синтаксиса, название языка, копирование', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await openDemo(page);
+  await openPage(page, 'React');
+  const block = page.locator('.md--article .code').first();
+  await expect(block.locator('.code__lang')).toHaveText('JSX');
+  await expect(block.locator('.hljs-keyword').first()).toHaveText('function');
+  await block.getByRole('button', { name: 'Копировать' }).click();
+  await expect(block.getByRole('button', { name: 'Скопировано' })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('function Hello({ name })');
+
+  // Язык не указан — определяется по содержимому.
+  await openPage(page, 'WebSocket');
+  await page.getByRole('link', { name: 'Написать текст' }).click();
+  await typeInEditor(page, 'Текст страницы', '```\n#include <stdio.h>\nint main() {\nint score = 87;\nif (score >= 100) { printf("ok"); }\nreturn 0;\n}\n```');
+  const preview = page.getByLabel('Предпросмотр');
+  await expect(preview.locator('.hljs-keyword').first()).toBeVisible();
+  await expect(preview.locator('.hljs-string').filter({ hasText: '"ok"' })).toBeVisible();
+  await expect(preview.locator('.hljs-meta').first()).toContainText('#include');
 });

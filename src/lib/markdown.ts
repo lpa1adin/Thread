@@ -4,6 +4,7 @@
  */
 import DOMPurify from 'dompurify';
 import type { Element, ElementContent, Root } from 'hast';
+import rehypeHighlight from 'rehype-highlight';
 import rehypeStringify from 'rehype-stringify';
 import remarkGfm from 'remark-gfm';
 import remarkParse from 'remark-parse';
@@ -74,8 +75,14 @@ function rehypeWiki(ctx: RenderContext) {
         p.target = '_blank';
         p.rel = ['noopener', 'noreferrer', 'nofollow'];
       } else if (child.tagName === 'img') {
-        // Картинки со сторонних адресов не загружаются (политика CSP) — показываем ссылку.
         const src = typeof p.src === 'string' ? p.src : '';
+        const own = src.match(/^attachment:([\w-]{1,64})$/);
+        if (own) {
+          // Своё изображение: адрес подставит компонент Markdown после чтения файла из базы.
+          child.properties = { className: ['md__image'], dataAttachment: own[1], alt: typeof p.alt === 'string' ? p.alt : '', loading: 'lazy' };
+          continue;
+        }
+        // Картинки со сторонних адресов не загружаются (политика CSP) — показываем ссылку.
         child.tagName = 'a';
         child.properties = { href: src, target: '_blank', rel: ['noopener', 'noreferrer', 'nofollow'] };
         child.children = [{ type: 'text', value: `Изображение: ${typeof p.alt === 'string' && p.alt ? p.alt : src}` }];
@@ -114,8 +121,9 @@ function rehypeWiki(ctx: RenderContext) {
 const SANITIZE = {
   USE_PROFILES: { html: true },
   ADD_ATTR: ['target', 'role', 'tabindex'],
-  FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select', 'option', 'iframe', 'video', 'audio', 'img', 'svg', 'math'],
-  FORBID_ATTR: ['style', 'id', 'name'],
+  FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select', 'option', 'iframe', 'video', 'audio', 'svg', 'math'],
+  // src у картинок запрещён: разрешены только свои изображения, а их адрес ставится позже, из базы.
+  FORBID_ATTR: ['style', 'id', 'name', 'src', 'srcset'],
 };
 
 const cache = new Map<string, string>();
@@ -134,6 +142,8 @@ export function renderMarkdown(src: string, ctx: RenderContext): string {
       .use(remarkGfm)
       .use(remarkRehype)
       .use(rehypeWiki, ctx)
+      // Подсветка синтаксиса; если язык после ``` не указан, он определяется по содержимому.
+      .use(rehypeHighlight, { detect: true })
       .use(rehypeStringify)
       .processSync(wikiToMarkdown(src));
     html = DOMPurify.sanitize(String(raw), SANITIZE);

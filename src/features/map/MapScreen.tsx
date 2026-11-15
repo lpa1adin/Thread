@@ -4,7 +4,6 @@ import { toastError } from '../../app/store';
 import { api, errorMessage } from '../../lib/client';
 import { useQuery } from '../../lib/hooks';
 import { navigate, paths } from '../../lib/router';
-import { PageLinks } from '../overview/PageCard';
 import { ExportDialog } from './ExportDialog';
 import { MAP_COLORS, MapSvg } from './MapSvg';
 import { buildMapModel, MARKED_FILTER } from './mapModel';
@@ -85,7 +84,7 @@ export function MapScreen({ focus }: { focus: string }) {
             <option value="">всю карту</option>
             <option value={MARKED_FILTER}>отмеченные и что нужно до них</option>
             <optgroup label="Ветка страницы">
-              {model.onMap.map((n) => (
+              {model.pages.map((n) => (
                 <option key={n.id} value={n.id}>
                   {n.title}
                 </option>
@@ -132,7 +131,7 @@ export function MapScreen({ focus }: { focus: string }) {
           <p className="map__empty">
             {focus === MARKED_FILTER
               ? 'Отмеченных страниц пока нет. Отметьте страницу кружком рядом с названием.'
-              : 'На карте пока ничего нет. Карта строится по связям «требует знания» и «является частью» — добавьте их ссылкой [[Название|требует знания]] или кнопкой «Связать».'}
+              : 'Страниц пока нет. Создайте первую — она появится на карте.'}
           </p>
         ) : (
           <MapSvg model={model} zoom={zoom} />
@@ -165,11 +164,9 @@ export function MapScreen({ focus }: { focus: string }) {
           </span>
         ))}
         {model.layout.removedEdges > 0 && <span className="map__warn">В связях есть цикл — на карте он разорван ({model.layout.removedEdges}).</span>}
-        {model.unplaced.length > 0 && (
-          <span className="map__unplaced">
-            Не на карте (нет связей «требует знания» и «является частью»): <PageLinks pages={model.unplaced} />
-          </span>
-        )}
+        <span className="map__unplaced">
+          Карточки связываются стрелками по связям «требует знания» и «является частью»: напишите в тексте <code>[[Название|требует знания]]</code> или нажмите «Связать» на странице.
+        </span>
       </div>
       {exporting && <ExportDialog model={model} onClose={() => setExporting(false)} />}
     </div>

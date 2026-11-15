@@ -1,6 +1,6 @@
 import type { Sql } from './storage/sql';
 
-export type VaultKind = 'concept' | 'note' | 'relation';
+export type VaultKind = 'concept' | 'note' | 'relation' | 'attachment';
 
 /** Контекст одного вызова сервиса: рабочая БД, часы и учёт изменённых объектов. */
 export interface Ctx {

@@ -1,6 +1,7 @@
 /** Состояние запуска: хранилище, защита паролем, автоблокировка (S1, S3, S7), установка PWA. */
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { SecurityStatus } from '../core/types';
+import { clearAttachmentUrls } from '../lib/attachments';
 import { api, errorMessage } from '../lib/client';
 
 interface InstallPromptEvent extends Event {
@@ -60,6 +61,7 @@ export function SessionProvider({ children, locked }: { children: ReactNode; loc
 
   const lock = useCallback(async () => {
     await api.security.lock();
+    clearAttachmentUrls();
     await refreshSecurity();
   }, [refreshSecurity]);
 

@@ -1,7 +1,10 @@
 /** Резервная копия, восстановление и экспорт в Markdown (F16). Проверка формата и размера файла — S6. */
 import { CONCEPT_TYPES, LIMITS, RELATION_TYPES, STATUSES } from '../../core/constants';
 import { cleanTitle, norm } from '../../core/text';
-import { AppError, type BackupFile, type Concept, type ConceptType, type DataSet, type Note, type Relation, type Status } from '../../core/types';
+import { fromBase64 } from '../../core/crypto';
+import { attachmentsRepo } from '../repositories/attachments';
+import { validImage } from './attachments';
+import { AppError, type Attachment, type BackupFile, type Concept, type ConceptType, type DataSet, type Note, type Relation, type Status } from '../../core/types';
 import type { Ctx } from '../context';
 import { conceptsRepo, notesRepo } from '../repositories/content';
 import { relationsRepo } from '../repositories/graph';
@@ -93,6 +96,29 @@ export function parseBackup(json: string, now: number): DataSet {
     relations.push({ id: rid, sourceId, targetId, typeId, createdAt: created, updatedAt: time(r.updatedAt, created) });
   }
 
+  // Изображения: содержимое проверяется так же, как при обычной вставке.
+  const attachments: Attachment[] = [];
+  const imageIds = new Set<string>();
+  for (const a of Array.isArray(raw.attachments) ? raw.attachments : []) {
+    if (!isObj(a)) throw bad('изображение повреждено');
+    const aid = id(a.id, 'идентификатор изображения');
+    if (imageIds.has(aid)) continue;
+    let bytes: Uint8Array;
+    try {
+      bytes = fromBase64(str(a.data, LIMITS.imageBytes * 2, 'содержимое изображения'));
+    } catch {
+      throw bad('изображение повреждено');
+    }
+    let img: ReturnType<typeof validImage>;
+    try {
+      img = validImage(a.name, bytes);
+    } catch {
+      throw bad('в файле есть вложение, которое не является изображением');
+    }
+    imageIds.add(aid);
+    attachments.push({ id: aid, name: img.name, mime: img.mime, size: bytes.length, createdAt: time(a.createdAt, now), data: a.data as string });
+  }
+
   // Названия уникальны без учёта регистра: повторы получают номер.
   const titles = new Set<string>();
   for (const c of concepts) {
@@ -101,7 +127,7 @@ export function parseBackup(json: string, now: number): DataSet {
     titles.add(norm(title));
     c.title = title;
   }
-  return { concepts, notes, relations };
+  return { concepts, notes, relations, attachments };
 }
 
 export const backupService = {
@@ -111,6 +137,7 @@ export const backupService = {
       concepts: conceptsRepo.all(ctx, includeDeleted),
       notes: notesRepo.all(ctx, includeDeleted),
       relations: relationsRepo.all(ctx, includeDeleted),
+      attachments: attachmentsRepo.all(ctx),
     };
   },
 
@@ -123,6 +150,7 @@ export const backupService = {
     for (const r of ctx.db.all<{ id: string }>('SELECT id FROM concepts')) ctx.mark('concept', r.id);
     for (const r of ctx.db.all<{ id: string }>('SELECT id FROM notes')) ctx.mark('note', r.id);
     for (const r of ctx.db.all<{ id: string }>('SELECT id FROM relations')) ctx.mark('relation', r.id);
+    for (const r of ctx.db.all<{ id: string }>('SELECT id FROM attachments')) ctx.mark('attachment', r.id);
     for (const t of DATA_TABLES) ctx.db.run(`DELETE FROM ${t}`);
     ctx.cache.clear();
   },
@@ -136,6 +164,7 @@ export const backupService = {
     }
     for (const n of data.notes) notesRepo.insert(ctx, { ...n, conceptIds: n.conceptIds.filter((c) => alive.has(c)) });
     for (const r of data.relations) if (alive.has(r.sourceId) && alive.has(r.targetId)) relationsRepo.insert(ctx, r);
+    for (const a of data.attachments ?? []) attachmentsRepo.insertEncoded(ctx, a);
     reindexAll(ctx);
   },
 

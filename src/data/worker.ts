@@ -50,7 +50,9 @@ async function boot(): Promise<Engine> {
     pdb = memory();
     storage = 'memory';
   }
-  return new Engine(pdb, memory);
+  const engine = new Engine(pdb, memory);
+  await engine.call('system', 'sweep', []).catch(() => undefined);
+  return engine;
 }
 
 const ready = boot();

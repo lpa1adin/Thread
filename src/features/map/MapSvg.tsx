@@ -25,8 +25,8 @@ interface Props {
 /** Карта изучения в SVG: карточки по уровням и прямоугольные соединители со стрелками (F15). */
 export function MapSvg({ model, zoom = 1, interactive = true }: Props) {
   const { layout, cards } = model;
-  const width = Math.max(320, Math.ceil(layout.width));
-  const height = Math.max(200, Math.ceil(layout.height));
+  const width = Math.max(320, Math.ceil(model.width));
+  const height = Math.max(120, Math.ceil(model.height));
   const C = MAP_COLORS;
 
   return (
@@ -40,6 +40,11 @@ export function MapSvg({ model, zoom = 1, interactive = true }: Props) {
       {layout.edges.map((e) => (
         <path key={`${e.from}>${e.to}`} d={e.path} fill="none" stroke={C.line} strokeWidth="1.3" strokeDasharray={e.type === 'part' ? '5 4' : undefined} markerEnd="url(#map-arrow)" />
       ))}
+      {model.looseLabel && (
+        <text x={model.looseLabel.x} y={model.looseLabel.y} fontSize="12" fill={C.sub}>
+          {model.looseLabel.text}
+        </text>
+      )}
       {cards.map(({ node: n, x, y, h, open, info }) => {
         const fill = n.status === 'learning' ? C.learning : n.status === 'done' ? C.done : C.card;
         const title = (

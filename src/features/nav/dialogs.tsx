@@ -5,6 +5,7 @@ import { Modal } from '../../components/ui/Modal';
 import { CONCEPT_TYPES } from '../../core/constants';
 import { norm } from '../../core/text';
 import type { ConceptType } from '../../core/types';
+import { imagesFrom, uploadImage } from '../../lib/attachments';
 import { api, errorMessage } from '../../lib/client';
 import { navigate, paths } from '../../lib/router';
 
@@ -95,7 +96,24 @@ export function CaptureDialog({ onClose }: { onClose: () => void }) {
         </label>
         <label className="field">
           <span className="field__label">Текст или ссылка</span>
-          <textarea className="textarea" rows={7} value={content} onChange={(e) => (setContent(e.target.value), setError(''))} />
+          <textarea
+            className="textarea"
+            rows={7}
+            value={content}
+            onChange={(e) => (setContent(e.target.value), setError(''))}
+            onPaste={(e) => {
+              const files = imagesFrom(e.clipboardData);
+              if (!files.length) return;
+              e.preventDefault();
+              for (const f of files) {
+                uploadImage(f).then(
+                  (md) => setContent((c) => `${c}${c && !c.endsWith('\n') ? '\n\n' : ''}${md}\n`),
+                  (err) => setError(errorMessage(err)),
+                );
+              }
+            }}
+          />
+          <span className="field__hint">Скриншот можно вставить из буфера обмена (Ctrl+V).</span>
         </label>
         {error && (
           <p className="field__error" role="alert">

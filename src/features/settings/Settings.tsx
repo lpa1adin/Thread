@@ -14,7 +14,7 @@ const formatDate = (t: number | null) => (t ? new Date(t).toLocaleString('ru', {
 async function restoreFromFile() {
   const [file] = await pickFiles('.json,application/json', false);
   if (!file) return;
-  if (file.size > LIMITS.backupBytes) return toastError('Файл больше 50 МБ — это не резервная копия базы знаний');
+  if (file.size > LIMITS.backupBytes) return toastError('Файл больше 400 МБ — это не резервная копия базы знаний');
   const ok = await confirmAction({
     title: 'Восстановить базу из копии?',
     text: `Текущие страницы, материалы и связи будут заменены содержимым файла «${file.name}». Если они нужны — сначала сохраните резервную копию.`,

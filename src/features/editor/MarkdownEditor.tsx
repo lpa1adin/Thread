@@ -5,7 +5,12 @@ import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap, placeholder as placeholderExt } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
-import { useEffect, useRef } from 'react';
+import { ImagePlus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { toastError } from '../../app/store';
+import { imagesFrom, uploadImage } from '../../lib/attachments';
+import { errorMessage } from '../../lib/client';
+import { pickFiles } from '../../lib/files';
 import { useBase } from '../../app/base';
 import { norm } from '../../core/text';
 
@@ -21,7 +26,7 @@ interface Props {
 const theme = EditorView.theme({
   '&': { fontSize: '14px', backgroundColor: 'var(--panel)', color: 'var(--text)', border: '1px solid var(--line-strong)', borderRadius: 'var(--radius)' },
   '&.cm-focused': { outline: '2px solid var(--accent)', outlineOffset: '-1px' },
-  '.cm-scroller': { fontFamily: 'var(--font-mono)', lineHeight: '1.65', overflow: 'auto' },
+  '.cm-scroller': { fontFamily: 'var(--font-mono)', fontVariantLigatures: 'none', lineHeight: '1.65', overflow: 'auto' },
   '.cm-content': { padding: '12px 14px', caretColor: 'var(--text)', minHeight: '320px' },
   '.cm-placeholder': { color: 'var(--faint)' },
   '.cm-cursor': { borderLeftColor: 'var(--text)' },
@@ -47,11 +52,40 @@ const highlight = HighlightStyle.define([
 export function MarkdownEditor({ initial, onChange, placeholder, label, autoFocus }: Props) {
   const base = useBase();
   const host = useRef<HTMLDivElement>(null);
+  const editor = useRef<EditorView | null>(null);
+  const [uploading, setUploading] = useState(0);
   const changed = useRef(onChange);
   changed.current = onChange;
   // Автодополнение читает свежий список страниц без пересоздания редактора.
   const data = useRef(base);
   data.current = base;
+
+  /** Сохраняет изображения в базу и вставляет ссылки на них в место курсора (или в pos при перетаскивании). */
+  const insertImages = async (files: File[], pos?: number) => {
+    const view = editor.current;
+    if (!view || !files.length) return;
+    setUploading((n) => n + files.length);
+    const lines: string[] = [];
+    for (const file of files) {
+      try {
+        lines.push(await uploadImage(file));
+      } catch (e) {
+        toastError(errorMessage(e));
+      } finally {
+        setUploading((n) => n - 1);
+      }
+    }
+    if (!lines.length || editor.current !== view) return;
+    const at = Math.min(pos ?? view.state.selection.main.head, view.state.doc.length);
+    const line = view.state.doc.lineAt(at);
+    // Картинка встаёт отдельным абзацем, не разрывая текущую строку посередине слова.
+    const before = at === line.from ? '' : '\n\n';
+    const text = `${before}${lines.join('\n\n')}\n`;
+    view.dispatch({ changes: { from: at, insert: text }, selection: { anchor: at + text.length }, scrollIntoView: true });
+    view.focus();
+  };
+  const insert = useRef(insertImages);
+  insert.current = insertImages;
 
   useEffect(() => {
     const complete = (ctx: CompletionContext): CompletionResult | null => {
@@ -92,15 +126,50 @@ export function MarkdownEditor({ initial, onChange, placeholder, label, autoFocu
           placeholderExt(placeholder ?? ''),
           theme,
           EditorView.contentAttributes.of({ 'aria-label': label, spellcheck: 'true' }),
+          EditorView.domEventHandlers({
+            paste: (e) => {
+              const files = imagesFrom(e.clipboardData);
+              if (!files.length) return false;
+              e.preventDefault();
+              void insert.current(files);
+              return true;
+            },
+            drop: (e, v) => {
+              const files = imagesFrom(e.dataTransfer);
+              if (!files.length) return false;
+              e.preventDefault();
+              void insert.current(files, v.posAtCoords({ x: e.clientX, y: e.clientY }) ?? undefined);
+              return true;
+            },
+          }),
           EditorView.updateListener.of((u) => u.docChanged && changed.current(u.state.doc.toString())),
         ],
       }),
     });
+    editor.current = view;
     if (autoFocus) view.focus();
-    return () => view.destroy();
+    return () => {
+      editor.current = null;
+      view.destroy();
+    };
     // Редактор создаётся один раз; новый текст снаружи приходит через смену key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <div ref={host} className="editor__input" />;
+  return (
+    <div className="editor__input">
+      <div ref={host} />
+      <div className="editor__tools">
+        <button
+          type="button"
+          className="btn btn--small"
+          disabled={uploading > 0}
+          onClick={() => void pickFiles('image/png,image/jpeg,image/gif,image/webp', true).then((files) => insertImages(files))}
+        >
+          <ImagePlus size={14} /> {uploading > 0 ? 'Добавляю изображение…' : 'Добавить изображение'}
+        </button>
+        <span className="editor__toolhint">Скриншот можно вставить из буфера обмена (Ctrl+V) или перетащить файл в текст.</span>
+      </div>
+    </div>
+  );
 }

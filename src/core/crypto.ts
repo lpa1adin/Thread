@@ -18,7 +18,12 @@ export interface KdfParams {
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-export const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
+/** Кодирует частями: для больших массивов (изображения) развёртка всех байтов в аргументы переполняет стек. */
+export function toBase64(bytes: Uint8Array): string {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
 export const fromBase64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
 export function newKdfParams(): KdfParams {
