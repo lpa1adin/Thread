@@ -1,0 +1,96 @@
+/* Токены оформления. Палитра взята из согласованного прототипа: тёплая «бумага», фиолетовый акцент, жёлтые отметки. */
+:root {
+  color-scheme: light;
+  --bg: #f6f5f1;
+  --panel: #ffffff;
+  --sunken: #efede6;
+  --line: #e6e4dd;
+  --line-strong: #d2cfc5;
+  --text: #24231f;
+  --muted: #66645d;
+  --faint: #8d8b82;
+  --accent: #534ab7;
+  --accent-hover: #463da3;
+  --accent-bg: #eeedfe;
+  --on-accent: #ffffff;
+  --danger: #a32d2d;
+  --danger-bg: #fbeaea;
+  --warn: #7a4708;
+  --warn-bg: #faeeda;
+  --ok: #1d7a5c;
+  --code-bg: #f1efe8;
+  --mark: #f5b400;
+  --mark-ring: #b9b7ae;
+  --shadow: 0 8px 28px rgb(30 28 20 / 0.14);
+  --overlay: rgb(30 28 20 / 0.4);
+
+  --font-ui: 'Onest Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-text: 'Literata Variable', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --radius: 8px;
+  --radius-lg: 12px;
+  --control-h: 36px;
+  --topbar-h: 56px;
+  --tabbar-h: 58px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #1c1c1a;
+    --panel: #252523;
+    --sunken: #2c2c29;
+    --line: #363633;
+    --line-strong: #4a4a46;
+    --text: #ebe9e2;
+    --muted: #aeaca3;
+    --faint: #85837b;
+    --accent: #afa9ec;
+    --accent-hover: #c3beF4;
+    --accent-bg: #2e2b4d;
+    --on-accent: #1c1c1a;
+    --danger: #f09595;
+    --danger-bg: #40201f;
+    --warn: #fac775;
+    --warn-bg: #3a2a10;
+    --ok: #6fd0ad;
+    --code-bg: #2e2e2b;
+    --mark-ring: #6b6962;
+    --shadow: 0 8px 28px rgb(0 0 0 / 0.5);
+    --overlay: rgb(0 0 0 / 0.55);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #1c1c1a;
+  --panel: #252523;
+  --sunken: #2c2c29;
+  --line: #363633;
+  --line-strong: #4a4a46;
+  --text: #ebe9e2;
+  --muted: #aeaca3;
+  --faint: #85837b;
+  --accent: #afa9ec;
+  --accent-hover: #c3bef4;
+  --accent-bg: #2e2b4d;
+  --on-accent: #1c1c1a;
+  --danger: #f09595;
+  --danger-bg: #40201f;
+  --warn: #fac775;
+  --warn-bg: #3a2a10;
+  --ok: #6fd0ad;
+  --code-bg: #2e2e2b;
+  --mark-ring: #6b6962;
+  --shadow: 0 8px 28px rgb(0 0 0 / 0.5);
+  --overlay: rgb(0 0 0 / 0.55);
+}

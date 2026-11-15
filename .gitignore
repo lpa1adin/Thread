@@ -1,0 +1,42 @@
+# Зависимости и результаты сборки — восстанавливаются командами npm install и npm run build
+node_modules/
+dist/
+dev-dist/
+*.tsbuildinfo
+
+# Отчёты и артефакты тестов
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+coverage/
+docs/experiments-tables.md
+
+# Секреты и локальные настройки (в проекте их нет, правило — на будущее)
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+
+# Личные данные: резервные копии и выгрузки базы знаний, файлы базы
+nit-kopiya-*.json
+nit-stranicy-*.md
+nit-karta-*.png
+nit-karta-*.svg
+*.sqlite
+*.sqlite3
+*.db
+
+# Внутренние рабочие документы и настройки инструментов разработки
+docs/BRIEF.md
+.claude/
+.vscode/
+.idea/
+
+# Системные файлы и журналы
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*

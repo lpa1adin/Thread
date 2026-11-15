@@ -1,0 +1,170 @@
+/* Текст, полученный из Markdown. */
+.md {
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.md--article {
+  font-family: var(--font-text);
+  font-size: 17px;
+  line-height: 1.72;
+}
+.md > :first-child {
+  margin-top: 0;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+.md h2,
+.md h3,
+.md h4,
+.md h5,
+.md h6 {
+  margin: 1.5em 0 0.45em;
+  font-family: var(--font-ui);
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.md h2 {
+  font-size: 1.3em;
+}
+.md h3 {
+  font-size: 1.12em;
+}
+.md h4,
+.md h5,
+.md h6 {
+  font-size: 1em;
+}
+.md p {
+  margin: 0.65em 0;
+}
+.md ul,
+.md ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+.md li {
+  margin: 0.2em 0;
+}
+.md li > p {
+  margin: 0.2em 0;
+}
+.md a {
+  text-underline-offset: 3px;
+}
+.md code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--code-bg);
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+}
+.md pre {
+  margin: 0.9em 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border-radius: var(--radius);
+  background: var(--code-bg);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.md pre code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+.md blockquote {
+  margin: 0.9em 0;
+  padding: 2px 14px;
+  border-left: 3px solid var(--line-strong);
+  color: var(--muted);
+}
+.md hr {
+  margin: 1.6em 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.md table {
+  display: block;
+  max-width: 100%;
+  margin: 0.9em 0;
+  overflow: auto;
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: 14px;
+}
+.md th,
+.md td {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+.md th {
+  background: var(--sunken);
+  font-weight: 600;
+}
+.md mark,
+mark {
+  padding: 0 2px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--mark) 45%, transparent);
+  color: inherit;
+}
+
+/* ссылки [[…]] */
+.md .wikilink {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--link-color, var(--accent)) 45%, transparent);
+}
+.md .wikilink:hover {
+  border-bottom-color: var(--link-color, var(--accent));
+}
+.md .wikilink--missing {
+  color: var(--danger);
+  border-bottom: 1.5px dotted var(--danger);
+}
+/* цвет подчёркивания — тип связи */
+.md .wikilink[data-type='req'] {
+  --link-color: #7f77dd;
+}
+.md .wikilink[data-type='part'] {
+  --link-color: #ba7517;
+}
+.md .wikilink[data-type='uses'] {
+  --link-color: #1d9e75;
+}
+.md .wikilink[data-type='example'] {
+  --link-color: #d4537e;
+}
+.md .wikilink[data-type='alt'] {
+  --link-color: #d85a30;
+}
+.md .wikilink[data-type] {
+  border-bottom-width: 2px;
+  border-bottom-color: var(--link-color);
+}
+
+/* пункты с круглыми отметками */
+.md .contains-task-list {
+  padding-left: 0.2em;
+  list-style: none;
+}
+.md .task-list-item {
+  position: relative;
+  padding-left: 30px;
+}
+.md .task-list-item .check {
+  position: absolute;
+  left: 0;
+  top: 0.28em;
+  vertical-align: baseline;
+}
+.md .task-list-item.is-done {
+  color: var(--muted);
+}
+.md--static .check {
+  pointer-events: none;
+}

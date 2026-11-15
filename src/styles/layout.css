@@ -1,0 +1,267 @@
+/* ---------- каркас ---------- */
+.app {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--topbar-h);
+  padding: 0 var(--space-4);
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.topbar__brand {
+  width: calc(256px - var(--space-4) - var(--space-2));
+  flex: none;
+  font-family: var(--font-text);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.topbar__history {
+  display: flex;
+}
+.topbar__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+.topbar__search,
+.topbar__add {
+  display: none;
+}
+.topbar__add {
+  position: relative;
+}
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 45;
+  min-width: 220px;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.menu__item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.menu__item:hover {
+  background: var(--sunken);
+}
+
+.app__body {
+  display: grid;
+  grid-template-columns: 256px minmax(0, 1fr);
+  min-height: 0;
+}
+.app__nav {
+  padding: var(--space-3);
+  overflow: auto;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+.app__main {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.view {
+  height: 100%;
+  overflow: auto;
+  scroll-padding-top: var(--space-4);
+}
+.view--split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 328px;
+  overflow: hidden;
+}
+.view__main {
+  min-height: 0;
+  overflow: auto;
+}
+.view__side {
+  min-height: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+}
+.view--pages {
+  padding: var(--space-3);
+  background: var(--panel);
+}
+
+.page {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-6) var(--space-7);
+}
+.page--wide {
+  max-width: 1160px;
+}
+
+.tabbar {
+  display: none;
+}
+
+/* ---------- экран блокировки ---------- */
+.lock {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--space-4);
+}
+.lock__box {
+  width: min(400px, 100%);
+  padding: var(--space-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  color: var(--text);
+}
+.lock__box > svg {
+  color: var(--accent);
+}
+.lock__title {
+  margin: var(--space-3) 0 var(--space-2);
+  font-family: var(--font-text);
+  font-size: 24px;
+  line-height: 1.2;
+}
+.lock__field {
+  margin: var(--space-4) 0;
+}
+.lock .field__hint {
+  margin-top: var(--space-3);
+}
+
+/* ---------- планшет: панель связей уходит под текст ---------- */
+@media (max-width: 1099px) {
+  .view--split {
+    display: block;
+    overflow: auto;
+  }
+  .view__main,
+  .view__side {
+    overflow: visible;
+  }
+  .view__side {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+    padding: var(--space-5) var(--space-6);
+  }
+  .topbar__brand {
+    width: auto;
+    margin-right: var(--space-2);
+  }
+  .app__body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+  /* Две кнопки добавления не помещаются — остаётся одна «+» с меню. */
+  .topbar__actions {
+    display: none;
+  }
+  .topbar__add {
+    display: block;
+    margin-left: auto;
+  }
+}
+
+/* ---------- смартфон: меню — отдельной вкладкой, внизу панель разделов ---------- */
+@media (max-width: 759px) {
+  .app {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  .app__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .app__nav,
+  .topbar__brand,
+  .topbar__actions,
+  .topbar .search {
+    display: none;
+  }
+  .topbar {
+    padding-inline: var(--space-2);
+    gap: var(--space-1);
+  }
+  .topbar .seg {
+    margin-inline: auto;
+  }
+  .topbar__search {
+    display: inline-flex;
+  }
+  .topbar__add {
+    display: block;
+  }
+  .topbar .btn--icon {
+    width: 44px;
+    height: 44px;
+  }
+  .topbar .seg__btn {
+    height: 38px;
+  }
+  .page {
+    padding: var(--space-5) var(--space-4) var(--space-6);
+  }
+  .view__side {
+    padding: var(--space-5) var(--space-4);
+  }
+  .tabbar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .tabbar__item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: var(--tabbar-h);
+    font-size: 11.5px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .tabbar__item.is-active {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .tabbar__badge {
+    position: absolute;
+    top: 6px;
+    left: calc(50% + 6px);
+  }
+  .modal-back {
+    padding: 12px;
+    align-items: flex-end;
+  }
+  .modal {
+    padding: var(--space-4);
+  }
+  .modal__actions .btn {
+    flex: 1 1 auto;
+    height: 44px;
+  }
+}
