@@ -31,7 +31,7 @@
 Нужен [Node.js](https://nodejs.org/) версии 20 или новее.
 
 ```bash
-git clone <адрес-репозитория>
+git clone https://github.com/lpa1adin/Thread.git
 cd nit
 npm install
 ```
